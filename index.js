@@ -16,20 +16,35 @@ app.get("/check/:username", async (req, res) => {
   try {
     const username = req.params.username;
 
-    // Obtener userId
-    const userRes = await axios.get(`https://api.roblox.com/users/get-by-username?username=${username}`);
-    const userId = userRes.data.Id;
+    // ✅ Nueva API para obtener el ID del jugador
+    const userRes = await axios.post(
+      "https://users.roblox.com/v1/usernames/users",
+      {
+        usernames: [username],
+        excludeBannedUsers: true
+      },
+      {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
 
-    if (!userId) return res.status(404).send("❌ Usuario no encontrado");
+    if (!userRes.data.data || userRes.data.data.length === 0) {
+      return res.status(404).send("❌ Usuario no encontrado");
+    }
 
-    // Obtener presencia
+    const userId = userRes.data.data[0].id;
+
+    // Obtener presencia (online/offline y lugar)
     const presenceRes = await axios.post(
       "https://presence.roblox.com/v1/presence/users",
       { userIds: [userId] },
       {
         headers: {
           Cookie: `.ROBLOSECURITY=${ROBLOX_COOKIE}`,
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
 
